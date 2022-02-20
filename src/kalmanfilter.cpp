@@ -14,10 +14,10 @@ using namespace std;
 
 // -------------------------------------------------- //
 // YOU CAN USE AND MODIFY THESE CONSTANTS HERE
-constexpr bool INIT_ON_FIRST_PREDICTION = true;
+constexpr bool INIT_ON_FIRST_PREDICTION = false;
 constexpr double INIT_POS_STD = 10;
 constexpr double INIT_VEL_STD = 10;
-constexpr double ACCEL_STD = 1.1;
+constexpr double ACCEL_STD = 0;
 constexpr double GPS_POS_STD = 3.0;
 // -------------------------------------------------- //
 
@@ -148,32 +148,11 @@ void KalmanFilter::handleGPSMeasurement(GPSMeasurement meas)
             VectorXd state = Vector4d::Zero();
             MatrixXd cov = Matrix4d::Zero();
 
-            MatrixXd H(2,4); //Sensor Measurement Matrix
-            H<<1,0,0,0,
-                0,1,0,0;
-
-            MatrixXd R(2,2); //Uncertainty inside the GPS measurement
-            R<<GPS_POS_STD*GPS_POS_STD, 0,
-                0, GPS_POS_STD*GPS_POS_STD;
-            
-            VectorXd y(2), z(2);
-            z<<meas.x,meas.y;
-
-            y = z - H*state; //innovation = gps_measurement - measurement model
-
-            MatrixXd S(2,2); //Uncertainty of measurement innovation
-
-            S = H*cov*H.transpose() + R;
-
-            MatrixXd K(4,2); //Kalman Gain
-
-            K = cov*H.transpose()*S.inverse();
-
-            //Update State and covariance
-            MatrixXd I = MatrixXd::Identity(4, 4);
-
-            state = state + K*y;
-            cov = (I-K*H)*cov;
+            state<<meas.x,meas.y,0,0; 
+            cov<<GPS_POS_STD*GPS_POS_STD, 0, 0, 0,
+                0, GPS_POS_STD*GPS_POS_STD, 0, 0,
+                0, 0, INIT_VEL_STD*INIT_VEL_STD, 0,
+                0, 0, 0, INIT_VEL_STD*INIT_VEL_STD;
 
             setState(state);
             setCovariance(cov);
